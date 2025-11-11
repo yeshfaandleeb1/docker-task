@@ -2,18 +2,19 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_PATH = "GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend"
-        FRONTEND_PATH = "GreenX_DCS_Assesment_Tool-main/greenx-assessment-tool-frontend"
+        BACKEND_PATH = "docker-task/GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend"
+        FRONTEND_PATH = "docker-task/GreenX_DCS_Assesment_Tool-main/greenx-assessment-tool-frontend"
         BACKEND_IMAGE = "greenx-backend:latest"
         FRONTEND_IMAGE = "greenx-frontend:latest"
         EMAIL_RECIPIENT = "yeshfaandleeb05@gmail.com"
     }
 
     stages {
-        stage('Clean Workspace') {
+        stage('Checkout') {
             steps {
-                echo "🧹 Cleaning workspace..."
-                cleanWs()
+                echo "📦 Checking out code..."
+                checkout scm
+                sh 'echo "Workspace after checkout:" && ls -R | grep Dockerfile || true'
             }
         }
 
@@ -21,8 +22,8 @@ pipeline {
             steps {
                 echo "🐍 Building Backend Docker image..."
                 sh '''
-                    docker build -t ${BACKEND_IMAGE} \
-                    -f ${BACKEND_PATH}/Dockerfile ${BACKEND_PATH}
+                    echo "Building from path: ${BACKEND_PATH}"
+                    docker build -t ${BACKEND_IMAGE} -f ${BACKEND_PATH}/Dockerfile ${BACKEND_PATH}
                 '''
             }
         }
@@ -31,15 +32,13 @@ pipeline {
             steps {
                 echo "🌐 Building Frontend Docker image..."
                 sh '''
-                    docker build -t ${FRONTEND_IMAGE} \
-                    -f ${FRONTEND_PATH}/Dockerfile ${FRONTEND_PATH}
+                    docker build -t ${FRONTEND_IMAGE} -f ${FRONTEND_PATH}/Dockerfile ${FRONTEND_PATH}
                 '''
             }
         }
 
         stage('List Docker Images') {
             steps {
-                echo "📦 Listing Docker images..."
                 sh 'docker images'
             }
         }
@@ -48,32 +47,18 @@ pipeline {
     post {
         success {
             echo "✅ Build successful."
-            emailext (
+            emailext(
                 subject: "✅ Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-🎉 Jenkins Build Successful!
-
-Project: ${env.JOB_NAME}
-Build Number: ${env.BUILD_NUMBER}
-Status: SUCCESS ✅
-URL: ${env.BUILD_URL}
-                """,
+                body: "🎉 Build Successful!\\nJob: ${env.JOB_NAME}\\nBuild: ${env.BUILD_NUMBER}\\nURL: ${env.BUILD_URL}",
                 to: "${EMAIL_RECIPIENT}"
             )
         }
 
         failure {
             echo "❌ Build failed."
-            emailext (
+            emailext(
                 subject: "❌ Jenkins Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-⚠️ Jenkins Build Failed!
-
-Project: ${env.JOB_NAME}
-Build Number: ${env.BUILD_NUMBER}
-Status: FAILED ❌
-URL: ${env.BUILD_URL}
-                """,
+                body: "⚠️ Build Failed!\\nJob: ${env.JOB_NAME}\\nBuild: ${env.BUILD_NUMBER}\\nURL: ${env.BUILD_URL}",
                 to: "${EMAIL_RECIPIENT}"
             )
         }
