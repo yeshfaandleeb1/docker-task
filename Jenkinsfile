@@ -7,6 +7,20 @@ pipeline {
     }
 
     stages {
+        stage('Checkout Repository') {
+            steps {
+                echo "📦 Checking out full GitHub repository..."
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/yeshfaandleeb1/docker-task.git'
+                    ]]
+                ])
+                sh 'ls -R ${WORKSPACE}'
+            }
+        }
+
         stage('Clean Workspace') {
             steps {
                 cleanWs()
