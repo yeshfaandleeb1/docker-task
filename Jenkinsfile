@@ -10,6 +10,8 @@ pipeline {
         stage('Checkout Repository') {
             steps {
                 echo "📦 Checking out full GitHub repository..."
+                // Clean workspace first, then clone repo
+                deleteDir()
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: '*/main']],
@@ -17,14 +19,10 @@ pipeline {
                         url: 'https://github.com/yeshfaandleeb1/docker-task.git'
                     ]]
                 ])
-                sh 'ls -R ${WORKSPACE}'
-            }
-        }
-
-        stage('Clean Workspace') {
-            steps {
-                cleanWs()
-                echo "🧹 Workspace cleaned."
+                sh '''
+                echo "✅ Repository structure after checkout:"
+                ls -R ${WORKSPACE} | head -n 50
+                '''
             }
         }
 
