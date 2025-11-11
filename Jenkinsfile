@@ -10,7 +10,6 @@ pipeline {
     }
 
     stages {
-
         stage('Clean Workspace') {
             steps {
                 echo "🧹 Cleaning workspace..."
@@ -58,8 +57,6 @@ Project: ${env.JOB_NAME}
 Build Number: ${env.BUILD_NUMBER}
 Status: SUCCESS ✅
 URL: ${env.BUILD_URL}
-
-All Docker images were built successfully.
                 """,
                 to: "${EMAIL_RECIPIENT}"
             )
@@ -76,12 +73,9 @@ Project: ${env.JOB_NAME}
 Build Number: ${env.BUILD_NUMBER}
 Status: FAILED ❌
 URL: ${env.BUILD_URL}
-
-Please check the Jenkins console logs for details.
                 """,
                 to: "${EMAIL_RECIPIENT}"
             )
         }
     }
 }
-
