@@ -1,28 +1,27 @@
-# Base image
-FROM python:3.11-slim
+FROM python:3.10-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies (needed for psycopg2-binary)
-RUN apt-get update && apt-get install -y \
+# Install full build toolchain and Python headers
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     gcc \
-    libpq-dev \
+    g++ \
+    make \
     python3-dev \
+    libffi-dev \
+    libssl-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency list
 COPY requirements.txt .
 
-# Install dependencies
-RUN pip install --upgrade pip && \
+# Upgrade pip and install dependencies
+RUN pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy all backend code
 COPY . .
 
-# Expose backend port
 EXPOSE 8000
 
-# Command to run your app (adjust as needed)
-CMD ["python", "main.py"]
+CMD ["python", "-m", "app.main"]
