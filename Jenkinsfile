@@ -1,57 +1,87 @@
 pipeline {
     agent any
 
+    environment {
+        BACKEND_PATH = "GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend"
+        FRONTEND_PATH = "GreenX_DCS_Assesment_Tool-main/greenx-assessment-tool-frontend"
+        BACKEND_IMAGE = "greenx-backend:latest"
+        FRONTEND_IMAGE = "greenx-frontend:latest"
+        EMAIL_RECIPIENT = "yeshfaandleeb05@gmail.com"
+    }
+
     stages {
+
         stage('Clean Workspace') {
             steps {
+                echo "🧹 Cleaning workspace..."
                 cleanWs()
-                echo '🧹 Workspace cleaned.'
             }
         }
 
         stage('Build Backend Image') {
             steps {
-                dir('docker-task/GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend') {
-                    echo '🐍 Building Backend Docker image...'
-                    sh 'docker build -t greenx-backend:latest -f Dockerfile .'
-                }
+                echo "🐍 Building Backend Docker image..."
+                sh '''
+                    docker build -t ${BACKEND_IMAGE} \
+                    -f ${BACKEND_PATH}/Dockerfile ${BACKEND_PATH}
+                '''
             }
         }
 
         stage('Build Frontend Image') {
             steps {
-                dir('docker-task/GreenX_DCS_Assesment_Tool-main/greenx-assessment-tool-frontend') {
-                    echo '🌐 Building Frontend Docker image...'
-                    sh 'docker build -t greenx-frontend:latest -f Dockerfile .'
-                }
+                echo "🌐 Building Frontend Docker image..."
+                sh '''
+                    docker build -t ${FRONTEND_IMAGE} \
+                    -f ${FRONTEND_PATH}/Dockerfile ${FRONTEND_PATH}
+                '''
             }
         }
 
         stage('List Docker Images') {
             steps {
-                echo '📦 Listing built Docker images...'
-                sh 'docker images | grep greenx'
+                echo "📦 Listing Docker images..."
+                sh 'docker images'
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build successful.'
+            echo "✅ Build successful."
             emailext (
-                subject: "✅ Jenkins Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Build completed successfully.\nCheck console: ${env.BUILD_URL}",
-                to: 'yeshfaandleeb05@gmail.com'
+                subject: "✅ Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+🎉 Jenkins Build Successful!
+
+Project: ${env.JOB_NAME}
+Build Number: ${env.BUILD_NUMBER}
+Status: SUCCESS ✅
+URL: ${env.BUILD_URL}
+
+All Docker images were built successfully.
+                """,
+                to: "${EMAIL_RECIPIENT}"
             )
         }
 
         failure {
-            echo '❌ Build failed.'
+            echo "❌ Build failed."
             emailext (
-                subject: "❌ Jenkins Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Build failed. Check logs: ${env.BUILD_URL}",
-                to: 'yeshfaandleeb05@gmail.com'
+                subject: "❌ Jenkins Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+⚠️ Jenkins Build Failed!
+
+Project: ${env.JOB_NAME}
+Build Number: ${env.BUILD_NUMBER}
+Status: FAILED ❌
+URL: ${env.BUILD_URL}
+
+Please check the Jenkins console logs for details.
+                """,
+                to: "${EMAIL_RECIPIENT}"
             )
         }
     }
 }
+
