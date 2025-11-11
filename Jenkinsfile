@@ -1,8 +1,12 @@
 pipeline {
     agent any
 
-    stages {
+    environment {
+        BACKEND_PATH = "${WORKSPACE}/GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend"
+        FRONTEND_PATH = "${WORKSPACE}/GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend"
+    }
 
+    stages {
         stage('Clean Workspace') {
             steps {
                 cleanWs()
@@ -12,10 +16,12 @@ pipeline {
 
         stage('Build Backend Image') {
             steps {
-                dir('GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend') {
+                dir("${BACKEND_PATH}") {
                     echo "🐍 Building Backend Docker image..."
                     sh '''
-                    docker build -t greenx-backend:latest .
+                    echo "📁 Current directory: $(pwd)"
+                    ls -la
+                    docker build -t greenx-backend:latest -f Dockerfile .
                     '''
                 }
             }
@@ -23,10 +29,12 @@ pipeline {
 
         stage('Build Frontend Image') {
             steps {
-                dir('GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend') {
-                    echo "🧱 Building Frontend Docker image..."
+                dir("${FRONTEND_PATH}") {
+                    echo "🌐 Building Frontend Docker image..."
                     sh '''
-                    docker build -t greenx-frontend:latest .
+                    echo "📁 Current directory: $(pwd)"
+                    ls -la
+                    docker build -t greenx-frontend:latest -f Dockerfile .
                     '''
                 }
             }
@@ -34,7 +42,7 @@ pipeline {
 
         stage('List Docker Images') {
             steps {
-                echo "📦 Listing all Docker images..."
+                echo "📦 Listing Docker images..."
                 sh 'docker images'
             }
         }
