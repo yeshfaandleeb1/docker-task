@@ -11,18 +11,18 @@ pipeline {
 
         stage('Build Backend Image') {
             steps {
-                dir('GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend') {
+                dir('docker-task/GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend') {
                     echo '🐍 Building Backend Docker image...'
-                    sh 'docker build -t greenx-backend:latest -f ./Dockerfile .'
+                    sh 'docker build -t greenx-backend:latest -f Dockerfile .'
                 }
             }
         }
 
         stage('Build Frontend Image') {
             steps {
-                dir('GreenX_DCS_Assesment_Tool-main/greenx-assessment-tool-frontend') {
+                dir('docker-task/GreenX_DCS_Assesment_Tool-main/greenx-assessment-tool-frontend') {
                     echo '🌐 Building Frontend Docker image...'
-                    sh 'docker build -t greenx-frontend:latest -f ./Dockerfile .'
+                    sh 'docker build -t greenx-frontend:latest -f Dockerfile .'
                 }
             }
         }
