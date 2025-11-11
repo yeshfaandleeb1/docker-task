@@ -1,12 +1,8 @@
 pipeline {
     agent any
 
-    environment {
-        BACKEND_DIR = "GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend"
-        FRONTEND_DIR = "GreenX_DCS_Assesment_Tool-main/greenx-assessment-tool-frontend"
-    }
-
     stages {
+
         stage('Clean Workspace') {
             steps {
                 cleanWs()
@@ -14,33 +10,31 @@ pipeline {
             }
         }
 
-        stage('Checkout Code') {
-            steps {
-                echo "📦 Fetching latest code..."
-                checkout scm
-            }
-        }
-
         stage('Build Backend Image') {
             steps {
-                dir("${BACKEND_DIR}") {
+                dir('GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend') {
                     echo "🐍 Building Backend Docker image..."
-                    sh 'docker build -t greenx-backend:latest .'
+                    sh '''
+                    docker build -t greenx-backend:latest .
+                    '''
                 }
             }
         }
 
         stage('Build Frontend Image') {
             steps {
-                dir("${FRONTEND_DIR}") {
+                dir('GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend') {
                     echo "🧱 Building Frontend Docker image..."
-                    sh 'docker build -t greenx-frontend:latest .'
+                    sh '''
+                    docker build -t greenx-frontend:latest .
+                    '''
                 }
             }
         }
 
         stage('List Docker Images') {
             steps {
+                echo "📦 Listing all Docker images..."
                 sh 'docker images'
             }
         }
@@ -55,5 +49,3 @@ pipeline {
         }
     }
 }
-
-
