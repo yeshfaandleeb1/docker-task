@@ -15,13 +15,22 @@ pipeline {
             }
         }
 
+        stage('Checkout Code') {
+            steps {
+                echo "📦 Checking out repository..."
+                checkout scm
+                sh 'ls -R | grep Dockerfile || true'
+            }
+        }
+
         stage('Build Backend Image') {
             steps {
                 echo "🐍 Building Backend Docker image..."
                 sh '''
-                    echo "Current directory: $(pwd)"
-                    ls -R | grep Dockerfile || true
-                    docker build -t greenx-backend:latest -f ${BACKEND_PATH}/Dockerfile ${BACKEND_PATH}
+                    echo "Current Directory: $(pwd)"
+                    docker build -t greenx-backend:latest \
+                    -f ${WORKSPACE}/${BACKEND_PATH}/Dockerfile \
+                    ${WORKSPACE}/${BACKEND_PATH}
                 '''
             }
         }
@@ -30,14 +39,16 @@ pipeline {
             steps {
                 echo "🌐 Building Frontend Docker image..."
                 sh '''
-                    docker build -t greenx-frontend:latest -f ${FRONTEND_PATH}/Dockerfile ${FRONTEND_PATH}
+                    docker build -t greenx-frontend:latest \
+                    -f ${WORKSPACE}/${FRONTEND_PATH}/Dockerfile \
+                    ${WORKSPACE}/${FRONTEND_PATH}
                 '''
             }
         }
 
         stage('List Docker Images') {
             steps {
-                echo "📦 Listing Docker images..."
+                echo "📋 Listing Docker images..."
                 sh 'docker images'
             }
         }
@@ -48,16 +59,16 @@ pipeline {
             echo "✅ Build succeeded!"
             emailext(
                 to: "${RECIPIENT}",
-                subject: "✅ Jenkins Build Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                subject: "✅ Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
-                    Hi,
+                Hi,
 
-                    Your Jenkins build for '${env.JOB_NAME}' completed successfully!
+                The Jenkins build for '${env.JOB_NAME}' completed successfully.
 
-                    Build URL: ${env.BUILD_URL}
+                Build URL: ${env.BUILD_URL}
 
-                    Regards,
-                    Jenkins Automation
+                Regards,
+                Jenkins Automation
                 """
             )
         }
@@ -68,16 +79,16 @@ pipeline {
                 to: "${RECIPIENT}",
                 subject: "❌ Jenkins Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
-                    Hi,
+                Hi,
 
-                    The Jenkins build for '${env.JOB_NAME}' has failed.
+                The Jenkins build for '${env.JOB_NAME}' failed.
 
-                    Build URL: ${env.BUILD_URL}
+                Build URL: ${env.BUILD_URL}
 
-                    Please review the logs and fix the issue.
+                Please review the logs and fix the issue.
 
-                    Regards,
-                    Jenkins Automation
+                Regards,
+                Jenkins Automation
                 """
             )
         }
