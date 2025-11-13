@@ -6,7 +6,8 @@ pipeline {
     }
 
     environment {
-        REPO_URL = 'https://github.com/yeshfaandleeb1/docker-task.git'
+        BACKEND_DIR = "GreenX_DCS_Assesment_Tool_Backend"
+        FRONTEND_DIR = "greenX-assessment-tool-frontend"
         LOG_FILE = "pipeline_log_${env.BUILD_NUMBER}.txt"
         START_TIME = ""
     }
@@ -28,38 +29,21 @@ pipeline {
             }
         }
 
-        stage('Checkout Code') {
+        stage('Backend - Build Docker Image') {
             steps {
-                echo '📦 Checking out repository...'
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[
-                        url: "${REPO_URL}",
-                        credentialsId: 'yeshfaandleeb05@gmail.com'
-                    ]]
-                ])
+                echo '📦 Building Backend Image...'
+                dir("${BACKEND_DIR}") {
+                    sh 'docker build -t greenx-backend:latest .'
+                }
             }
         }
 
-        stage('Build Backend Image') {
+        stage('Frontend - Build Docker Image') {
             steps {
-                echo '🐍 Building Backend Docker image...'
-                sh '''
-                    docker build -t greenx-backend:latest \
-                    -f GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend/Dockerfile \
-                    GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend
-                '''
-            }
-        }
-
-        stage('Build Frontend Image') {
-            steps {
-                echo '🌐 Building Frontend Docker image...'
-                sh '''
-                    docker build -t greenx-frontend:latest \
-                    -f GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend/Dockerfile \
-                    GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend
-                '''
+                echo '🌐 Building Frontend Image...'
+                dir("${FRONTEND_DIR}") {
+                    sh 'docker build -t greenx-frontend:latest .'
+                }
             }
         }
 
@@ -76,8 +60,8 @@ pipeline {
         stage('Save Console Log') {
             steps {
                 script {
-                    def log = currentBuild.rawBuild.getLog(100000) // capture ALL logs
-                    writeFile file: LOG_FILE, text: log.join("\n")
+                    def log = currentBuild.rawBuild.getLog(100000)
+                    writeFile file: LOG_FILE, text: log.join("\\n")
                 }
                 echo "📄 Log file saved: ${LOG_FILE}"
             }
@@ -85,30 +69,30 @@ pipeline {
     }
 
     post {
+
         success {
             script {
                 def end = System.currentTimeMillis()
                 def duration = (end - START_TIME) / 1000
 
                 emailext(
-                    subject: "SUCCESS: Jenkins Pipeline - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    subject: "SUCCESS ✔️: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                     to: "yeshfaandleeb05@gmail.com",
                     body: """
-🎉 **BUILD SUCCESSFUL**
+<h2 style='color:green;'>🎉 BUILD SUCCESSFUL</h2>
+<b>Job:</b> ${env.JOB_NAME}<br>
+<b>Build #:</b> ${env.BUILD_NUMBER}<br>
+<b>Duration:</b> ${duration} seconds<br><br>
 
-**Job:** ${env.JOB_NAME}  
-**Build #:** ${env.BUILD_NUMBER}  
-**Duration:** ${duration} seconds  
+<b>Docker Images:</b><br>
+✔ greenx-backend:latest<br>
+✔ greenx-frontend:latest<br><br>
 
-**Docker Images Built:**
-- greenx-backend:latest  
-- greenx-frontend:latest  
-
-Attached:
-✔ Full console log  
-✔ Docker image size report  
-
-""",
+<b>Attached:</b><br>
+✔ Full Console Log<br>
+✔ Docker Image Report<br>
+                    """,
+                    mimeType: 'text/html',
                     attachmentsPattern: "report.txt, ${LOG_FILE}"
                 )
             }
@@ -120,25 +104,25 @@ Attached:
                 def duration = (end - START_TIME) / 1000
 
                 emailext(
-                    subject: "FAILED: Jenkins Pipeline - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    subject: "FAILED ❌: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                     to: "yeshfaandleeb05@gmail.com",
                     body: """
-❌ **BUILD FAILED**
+<h2 style='color:red;'>❌ BUILD FAILED</h2>
+<b>Job:</b> ${env.JOB_NAME}<br>
+<b>Build #:</b> ${env.BUILD_NUMBER}<br>
+<b>Duration:</b> ${duration} seconds<br><br>
 
-**Job:** ${env.JOB_NAME}  
-**Build #:** ${env.BUILD_NUMBER}  
-**Duration:** ${duration} seconds  
-
-Attached:
-✔ Full console log  
-""",
+<b>Attached:</b><br>
+✔ Full Console Log<br>
+                    """,
+                    mimeType: 'text/html',
                     attachmentsPattern: "${LOG_FILE}"
                 )
             }
         }
 
         always {
-            echo "📧 Email Notification Completed"
+            echo "📧 Email Notification Stage Completed"
         }
     }
 }
