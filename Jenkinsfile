@@ -1,96 +1,144 @@
 pipeline {
     agent any
 
+    options {
+        timestamps()
+    }
+
     environment {
-        BACKEND_PATH = "GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend"
-        FRONTEND_PATH = "GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend"
-        RECIPIENT = "yeshfaandleeb05@gmail.com"
+        REPO_URL = 'https://github.com/yeshfaandleeb1/docker-task.git'
+        LOG_FILE = "pipeline_log_${env.BUILD_NUMBER}.txt"
+        START_TIME = ""
     }
 
     stages {
+
+        stage('Start Timer') {
+            steps {
+                script {
+                    START_TIME = System.currentTimeMillis()
+                }
+            }
+        }
+
         stage('Clean Workspace') {
             steps {
-                echo "🧹 Cleaning workspace..."
+                echo '🧹 Cleaning workspace...'
                 cleanWs()
             }
         }
 
         stage('Checkout Code') {
             steps {
-                echo "📦 Checking out repository..."
-                checkout scm
-                sh 'ls -R | grep Dockerfile || true'
+                echo '📦 Checking out repository...'
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: "${REPO_URL}",
+                        credentialsId: 'yeshfaandleeb05@gmail.com'
+                    ]]
+                ])
             }
         }
 
         stage('Build Backend Image') {
             steps {
-                echo "🐍 Building Backend Docker image..."
+                echo '🐍 Building Backend Docker image...'
                 sh '''
-                    echo "Current Directory: $(pwd)"
                     docker build -t greenx-backend:latest \
-                    -f ${WORKSPACE}/${BACKEND_PATH}/Dockerfile \
-                    ${WORKSPACE}/${BACKEND_PATH}
+                    -f GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend/Dockerfile \
+                    GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend
                 '''
             }
         }
 
         stage('Build Frontend Image') {
             steps {
-                echo "🌐 Building Frontend Docker image..."
+                echo '🌐 Building Frontend Docker image...'
                 sh '''
                     docker build -t greenx-frontend:latest \
-                    -f ${WORKSPACE}/${FRONTEND_PATH}/Dockerfile \
-                    ${WORKSPACE}/${FRONTEND_PATH}
+                    -f GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend/Dockerfile \
+                    GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend
                 '''
             }
         }
 
-        stage('List Docker Images') {
+        stage('List Images & Save Report') {
             steps {
-                echo "📋 Listing Docker images..."
-                sh 'docker images'
+                echo '📋 Collecting Docker image size report...'
+                sh '''
+                    echo "===== DOCKER IMAGE REPORT =====" > report.txt
+                    docker images | tee -a report.txt
+                '''
+            }
+        }
+
+        stage('Save Console Log') {
+            steps {
+                script {
+                    def log = currentBuild.rawBuild.getLog(100000) // capture ALL logs
+                    writeFile file: LOG_FILE, text: log.join("\n")
+                }
+                echo "📄 Log file saved: ${LOG_FILE}"
             }
         }
     }
 
     post {
         success {
-            echo "✅ Build succeeded!"
-            emailext(
-                to: "${RECIPIENT}",
-                subject: "✅ Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                Hi,
+            script {
+                def end = System.currentTimeMillis()
+                def duration = (end - START_TIME) / 1000
 
-                The Jenkins build for '${env.JOB_NAME}' completed successfully.
+                emailext(
+                    subject: "SUCCESS: Jenkins Pipeline - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    to: "yeshfaandleeb05@gmail.com",
+                    body: """
+🎉 **BUILD SUCCESSFUL**
 
-                Build URL: ${env.BUILD_URL}
+**Job:** ${env.JOB_NAME}  
+**Build #:** ${env.BUILD_NUMBER}  
+**Duration:** ${duration} seconds  
 
-                Regards,
-                Jenkins Automation
-                """
-            )
+**Docker Images Built:**
+- greenx-backend:latest  
+- greenx-frontend:latest  
+
+Attached:
+✔ Full console log  
+✔ Docker image size report  
+
+""",
+                    attachmentsPattern: "report.txt, ${LOG_FILE}"
+                )
+            }
         }
 
         failure {
-            echo "❌ Build failed!"
-            emailext(
-                to: "${RECIPIENT}",
-                subject: "❌ Jenkins Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                Hi,
+            script {
+                def end = System.currentTimeMillis()
+                def duration = (end - START_TIME) / 1000
 
-                The Jenkins build for '${env.JOB_NAME}' failed.
+                emailext(
+                    subject: "FAILED: Jenkins Pipeline - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    to: "yeshfaandleeb05@gmail.com",
+                    body: """
+❌ **BUILD FAILED**
 
-                Build URL: ${env.BUILD_URL}
+**Job:** ${env.JOB_NAME}  
+**Build #:** ${env.BUILD_NUMBER}  
+**Duration:** ${duration} seconds  
 
-                Please review the logs and fix the issue.
+Attached:
+✔ Full console log  
+""",
+                    attachmentsPattern: "${LOG_FILE}"
+                )
+            }
+        }
 
-                Regards,
-                Jenkins Automation
-                """
-            )
+        always {
+            echo "📧 Email Notification Completed"
         }
     }
 }
