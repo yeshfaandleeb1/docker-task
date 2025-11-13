@@ -2,94 +2,70 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_PATH = "GreenX_DCS_Assesment_Tool-main/GreenX_DCS_Assesment_Tool_Backend"
-        FRONTEND_PATH = "GreenX_DCS_Assesment_Tool-main/greenX-assessment-tool-frontend"
-        RECIPIENT = "yeshfaandleeb05@gmail.com"
+        BACKEND_DIR = "GreenX_DCS_Assesment_Tool_Backend"
+        FRONTEND_DIR = "greenX-assessment-tool-frontend"
     }
 
     stages {
+
         stage('Clean Workspace') {
             steps {
-                echo "🧹 Cleaning workspace..."
                 cleanWs()
             }
         }
 
-        stage('Checkout Code') {
+        stage('Backend - Build Docker Image') {
             steps {
-                echo "📦 Checking out repository..."
-                checkout scm
-                sh 'ls -R | grep Dockerfile || true'
+                dir("${BACKEND_DIR}") {
+                    sh 'docker build -t greenx-backend .'
+                }
             }
         }
 
-        stage('Build Backend Image') {
+        stage('Frontend - Build Docker Image') {
             steps {
-                echo "🐍 Building Backend Docker image..."
-                sh '''
-                    echo "Current Directory: $(pwd)"
-                    docker build -t greenx-backend:latest \
-                    -f ${WORKSPACE}/${BACKEND_PATH}/Dockerfile \
-                    ${WORKSPACE}/${BACKEND_PATH}
-                '''
-            }
-        }
-
-        stage('Build Frontend Image') {
-            steps {
-                echo "🌐 Building Frontend Docker image..."
-                sh '''
-                    docker build -t greenx-frontend:latest \
-                    -f ${WORKSPACE}/${FRONTEND_PATH}/Dockerfile \
-                    ${WORKSPACE}/${FRONTEND_PATH}
-                '''
+                dir("${FRONTEND_DIR}") {
+                    sh 'docker build -t greenx-frontend .'
+                }
             }
         }
 
         stage('List Docker Images') {
             steps {
-                echo "📋 Listing Docker images..."
                 sh 'docker images'
             }
         }
     }
 
     post {
+
         success {
-            echo "✅ Build succeeded!"
-            emailext(
-                to: "${RECIPIENT}",
-                subject: "✅ Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            emailext (
+                subject: "BUILD SUCCESSFUL ✔️: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
-                Hi,
-
-                The Jenkins build for '${env.JOB_NAME}' completed successfully.
-
-                Build URL: ${env.BUILD_URL}
-
-                Regards,
-                Jenkins Automation
-                """
+                <h2 style='color:green;'>Build Successful 🎉</h2>
+                <p><b>Job:</b> ${env.JOB_NAME}</p>
+                <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
+                <p>✔️ Backend & Frontend Docker Images Built Successfully.</p>
+                <p>🔗 <a href='${env.BUILD_URL}'>Click here to view console logs</a></p>
+                """,
+                mimeType: 'text/html',
+                to: "yeshfaandleeb05@gmail.com"
             )
         }
 
         failure {
-            echo "❌ Build failed!"
-            emailext(
-                to: "${RECIPIENT}",
-                subject: "❌ Jenkins Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            emailext (
+                subject: "BUILD FAILED ❌: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
-                Hi,
-
-                The Jenkins build for '${env.JOB_NAME}' failed.
-
-                Build URL: ${env.BUILD_URL}
-
-                Please review the logs and fix the issue.
-
-                Regards,
-                Jenkins Automation
-                """
+                <h2 style='color:red;'>Build Failed ❌</h2>
+                <p><b>Job:</b> ${env.JOB_NAME}</p>
+                <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
+                <p>⚠️ Something went wrong during Docker build.</p>
+                <p>🔗 <a href='${env.BUILD_URL}'>Click here to view console logs</a></p>
+                """,
+                mimeType: 'text/html',
+                to: "yeshfaandleeb05@gmail.com"
             )
         }
     }
